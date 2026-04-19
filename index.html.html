@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NRSP Lasbela — Programme Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --ink: #0f1a2e;
+    --ink-soft: #2a3b56;
+    --paper: #faf7f2;
+    --paper-warm: #f3ede3;
+    --line: #e3dcd0;
+    --accent: #c7451f;
+    --accent-soft: #e8724f;
+    --gold: #b8842e;
+    --forest: #2d5a3d;
+    --forest-soft: #4a7c5e;
+    --wine: #8b2c3a;
+    --sky: #2d5aa0;
+    --surface: #ffffff;
+    --shadow: 0 1px 2px rgba(15, 26, 46, 0.04), 0 4px 16px rgba(15, 26, 46, 0.06);
+    --shadow-lift: 0 2px 4px rgba(15, 26, 46, 0.06), 0 12px 32px rgba(15, 26, 46, 0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--paper); }
+  body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    color: var(--ink);
+    line-height: 1.5;
+    font-size: 15px;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(199, 69, 31, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(45, 90, 61, 0.04) 0%, transparent 40%);
+  }
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 28px 60px;
+  }
+
+  /* ===== MASTHEAD ===== */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 24px;
+    margin-bottom: 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .masthead-left { flex: 1; min-width: 280px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 2px;
+    background: var(--accent);
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 44px);
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  h1 em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .subtitle {
+    font-size: 14px;
+    color: var(--ink-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: center;
+  }
+  .subtitle .dot {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--ink-soft);
+    display: inline-block;
+  }
+  .masthead-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .status-pill .pip {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+    animation: pulse 2s infinite;
+  }
+  .status-pill.error { background: var(--accent); }
+  .status-pill.error .pip { background: white; animation: none; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+  }
+  .meta-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.05em;
+  }
+  .refresh-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--ink);
+    border: 1.5px solid var(--ink);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .refresh-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .refresh-btn svg { transition: transform 0.4s; }
+  .refresh-btn:hover svg { transform: rotate(180deg); }
+
+  /* ===== LOADING ===== */
+  .loading-state {
+    padding: 80px 20px;
+    text-align: center;
+  }
+  .loading-state .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state p {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  /* ===== ERROR ===== */
+  .error-box {
+    background: linear-gradient(135deg, #fff4e8 0%, #ffe8d6 100%);
+    border: 1.5px solid var(--accent-soft);
+    border-left: 6px solid var(--accent);
+    padding: 28px 32px;
+    border-radius: 4px;
+    margin: 30px 0;
+  }
+  .error-box h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--ink);
+  }
+  .error-box p { color: var(--ink-soft); margin-bottom: 10px; font-size: 14px; }
+  .error-box code {
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(15, 26, 46, 0.08);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  .error-box ul { margin-left: 22px; margin-top: 8px; }
+  .error-box li { color: var(--ink-soft); margin-bottom: 4px; }
+
+  /* ===== HERO KPI ROW ===== */
+  .hero-row {
+    display: grid;
+    grid-template-columns: 1.8fr 1fr 1fr 1fr;
+    gap: 0;
+    margin-bottom: 48px;
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: var(--shadow-lift);
+  }
+  .hero-cell {
+    padding: 28px 26px;
+    border-right: 1px solid var(--line);
+    position: relative;
+  }
+  .hero-cell:last-child { border-right: none; }
+  .hero-cell.featured {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .hero-cell .hero-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+  .hero-cell.featured .hero-label { color: rgba(250, 247, 242, 0.6); }
+  .hero-cell .hero-number {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(40px, 5vw, 56px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+  }
+  .hero-cell.featured .hero-number { color: var(--paper); }
+  .hero-cell .hero-number .unit {
+    font-family: 'Fraunces', serif;
+    font-size: 0.45em;
+    font-weight: 500;
+    font-style: italic;
+    color: var(--accent);
+    margin-left: 4px;
+  }
+  .hero-cell .hero-sub {
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-family: 'DM Sans', sans-serif;
+  }
+  .hero-cell.featured .hero-sub { color: rgba(250, 247, 242, 0.7); }
+
+  .hero-featured-details {
+    display: flex;
+    gap: 18px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(250, 247, 242, 0.2);
+  }
+  .hero-mini { flex: 1; }
+  .hero-mini-num {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--paper);
+  }
+  .hero-mini-num.green { color: #86efac; }
+  .hero-mini-num.red { color: #fca5a5; }
+  .hero-mini-num.yellow { color: #fcd34d; }
+  .hero-mini-label {
+    font-size: 10px;
+    color: rgba(250, 247, 242, 0.6);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* ===== SECTION HEADERS ===== */
+  .section-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .section-title em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .section-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ===== CHART ROW ===== */
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+  }
+  .chart-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .chart-card .chart-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .chart-container { position: relative; height: 280px; }
+
+  /* ===== PROJECT SECTIONS ===== */
+  .project-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s;
+  }
+  .project-card:hover { box-shadow: var(--shadow-lift); }
+  .project-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 26px;
+    border-bottom: 1px solid var(--line);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .project-head-left { display: flex; align-items: center; gap: 16px; }
+  .project-glyph {
+    width: 44px;
+    height: 44px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.02em;
+  }
+  .project-glyph.ifrap { background: var(--forest); }
+  .project-glyph.gllsp { background: var(--sky); }
+  .project-glyph.gfatm { background: var(--wine); }
+  .project-name {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .project-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .project-avg {
+    text-align: right;
+    padding-left: 20px;
+  }
+  .project-avg-num {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .project-avg-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .indicator {
+    display: grid;
+    grid-template-columns: minmax(200px, 1.5fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(300px, 2.5fr) 70px 110px;
+    gap: 20px;
+    align-items: center;
+    padding: 16px 26px;
+    border-bottom: 1px solid var(--line);
+    transition: background 0.15s;
+  }
+  .indicator:last-child { border-bottom: none; }
+  .indicator:hover { background: var(--paper-warm); }
+  .ind-name { font-weight: 500; font-size: 14px; color: var(--ink); }
+  .ind-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+  .ind-target, .ind-achieved {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .ind-target { color: var(--ink-soft); }
+  .progress-wrap {
+    position: relative;
+    height: 28px;
+    background: var(--paper-warm);
+    border-radius: 2px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .progress-fill {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.05em;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .fill-success { background: linear-gradient(90deg, var(--forest) 0%, var(--forest-soft) 100%); }
+  .fill-warning { background: linear-gradient(90deg, var(--gold) 0%, #d4a04a 100%); }
+  .fill-danger { background: linear-gradient(90deg, var(--accent) 0%, var(--accent-soft) 100%); }
+  .ind-pct {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 700;
+    text-align: right;
+    letter-spacing: -0.01em;
+  }
+  .ind-status {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+  .status-ontrack { color: var(--forest); border-color: var(--forest-soft); background: rgba(45, 90, 61, 0.06); }
+  .status-completed { color: var(--sky); border-color: var(--sky); background: rgba(45, 90, 160, 0.06); }
+  .status-warning { color: var(--gold); border-color: var(--gold); background: rgba(184, 132, 46, 0.08); }
+  .status-delayed { color: var(--accent); border-color: var(--accent-soft); background: rgba(199, 69, 31, 0.06); }
+  .status-tracking { color: var(--ink-soft); border-color: var(--line); background: var(--paper-warm); }
+
+  .indicator-head {
+    display: grid;
+    grid-template-columns: minmax(200px, 1.5fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(300px, 2.5fr) 70px 110px;
+    gap: 20px;
+    padding: 12px 26px;
+    background: var(--paper-warm);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--line);
+  }
+  .indicator-head .col-right { text-align: right; }
+  .indicator-head .col-center { text-align: center; }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    margin-top: 60px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .footer-brand {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  /* Mobile */
+  @media (max-width: 1000px) {
+    .hero-row { grid-template-columns: 1fr 1fr; }
+    .hero-cell { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .chart-row { grid-template-columns: 1fr; }
+    .indicator, .indicator-head {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .indicator-head { display: none; }
+    .ind-pct, .ind-status { text-align: left; }
+    .indicator { padding: 16px 20px; }
+  }
+  @media (max-width: 600px) {
+    .container { padding: 20px 16px 40px; }
+    .hero-row { grid-template-columns: 1fr; }
+    .project-head { flex-direction: column; align-items: flex-start; }
+    .project-avg { padding-left: 0; text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ===== MASTHEAD ===== -->
+  <header class="masthead">
+    <div class="masthead-left">
+      <div class="eyebrow">Lasbela District · Balochistan</div>
+      <h1>NRSP <em>Programme</em> Dashboard</h1>
+      <div class="subtitle">
+        <span>IFRAP Lot-4</span>
+        <span class="dot"></span>
+        <span>GLLSP-II (IFAD)</span>
+        <span class="dot"></span>
+        <span>GFATM Malaria</span>
+        <span class="dot"></span>
+        <span>Social Mobilization</span>
+      </div>
+    </div>
+    <div class="masthead-right">
+      <div id="status" class="status-pill">
+        <span class="pip"></span>
+        <span id="status-text">Connecting</span>
+      </div>
+      <div class="meta-line" id="lastUpdated">—</div>
+      <button class="refresh-btn" onclick="loadData()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <main id="content">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Fetching live data from Google Sheets…</p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-text">Auto-refresh · 5 min · Live from Google Sheets</div>
+    <div class="footer-brand">Built for NRSP Lasbela</div>
+  </footer>
+</div>
+
+<script>
+/* ===================================================================
+   CONFIGURATION — Aapka Google Sheet CSV URL
+   Agar sheet link change ho jaye to yahan update karein
+   =================================================================== */
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTvbxo0dd0zyRt1O-nq22s1y_774oZQhfCgfRejLJ8cF4FszmGgmFF_3bUQYb-1Y51mS7GPoi31iqPE/pub?gid=835867956&single=true&output=csv';
+const REFRESH_MINUTES = 5;
+
+let charts = {};
+
+async function loadData() {
+  const contentDiv = document.getElementById('content');
+  const statusEl = document.getElementById('status');
+  const statusText = document.getElementById('status-text');
+
+  try {
+    statusText.textContent = 'Fetching';
+    const url = SHEET_CSV_URL + '&_t=' + Date.now();
+    const resp = await fetch(url, { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const csv = await resp.text();
+
+    const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true, dynamicTyping: false });
+    if (!parsed.data || parsed.data.length === 0) throw new Error('Sheet empty');
+
+    const rows = parsed.data.filter(r => {
+      const p = (r.Project || '').trim();
+      return p
+        && !p.toLowerCase().startsWith('step')
+        && r.Unit
+        && r['Total Target']
+        && String(r['Total Target']).trim() !== '';
+    });
+
+    if (rows.length === 0) throw new Error('No valid project rows found');
+
+    render(rows);
+
+    statusEl.className = 'status-pill';
+    statusText.textContent = 'Live';
+    document.getElementById('lastUpdated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+  } catch (err) {
+    console.error(err);
+    statusEl.className = 'status-pill error';
+    statusText.textContent = 'Error';
+    contentDiv.innerHTML = `
+      <div class="error-box">
+        <h3>Data load nahi ho saka</h3>
+        <p><strong>Error:</strong> <code>${escapeHtml(err.message)}</code></p>
+        <p style="margin-top: 14px;"><strong>Check karein:</strong></p>
+        <ul>
+          <li>Google Sheet publish hai (<em>File → Share → Publish to web</em>)</li>
+          <li>Internet connection theek hai</li>
+          <li>CSV URL sahi hai (HTML file mein <code>SHEET_CSV_URL</code> edit karein)</li>
+        </ul>
+        <p style="margin-top: 14px;">
+          <button class="refresh-btn" onclick="loadData()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+            Try Again
+          </button>
+        </p>
+      </div>
+    `;
+  }
+}
+
+function parseNum(v) {
+  if (v == null || v === '' || v === '—') return 0;
+  const n = parseFloat(String(v).replace(/,/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function parsePct(v) {
+  if (v == null || v === '' || v === '—') return 0;
+  const clean = String(v).replace(/,/g, '').replace('%', '').trim();
+  const n = parseFloat(clean);
+  if (isNaN(n)) return 0;
+  return n <= 1 ? n * 100 : n;
+}
+
+function formatNum(n) {
+  if (n >= 1000) return n.toLocaleString('en-US');
+  if (n === 0) return '0';
+  if (n < 1 && n > 0) return n.toFixed(2);
+  return Math.round(n).toString();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+function statusOf(s) {
+  const x = (s || '').toLowerCase().trim();
+  if (x.includes('complet')) return { cls: 'status-completed', label: 'Completed' };
+  if (x.includes('track')) return { cls: 'status-ontrack', label: 'On Track' };
+  if (x.includes('warn')) return { cls: 'status-warning', label: 'Warning' };
+  if (x.includes('delay')) return { cls: 'status-delayed', label: 'Delayed' };
+  return { cls: 'status-tracking', label: s || 'Tracking' };
+}
+
+function fillClass(pct) {
+  if (pct >= 80) return 'fill-success';
+  if (pct >= 40) return 'fill-warning';
+  return 'fill-danger';
+}
+
+function projectGlyph(name) {
+  const n = name.toLowerCase();
+  if (n.includes('ifrap')) return { cls: 'ifrap', letter: 'I' };
+  if (n.includes('gllsp')) return { cls: 'gllsp', letter: 'G' };
+  if (n.includes('gfatm') || n.includes('malaria')) return { cls: 'gfatm', letter: 'M' };
+  return { cls: 'ifrap', letter: name.charAt(0).toUpperCase() };
+}
+
+function render(rows) {
+  const groups = {};
+  rows.forEach(r => {
+    const p = r.Project.trim();
+    (groups[p] = groups[p] || []).push(r);
+  });
+
+  const allPcts = rows.map(r => parsePct(r['% Achievement'])).filter(n => n > 0 && n <= 100);
+  const avgPct = allPcts.length ? allPcts.reduce((a,b) => a+b, 0) / allPcts.length : 0;
+  const completed = rows.filter(r => statusOf(r.Status).label === 'Completed').length;
+  const onTrack = rows.filter(r => statusOf(r.Status).label === 'On Track').length;
+  const delayed = rows.filter(r => statusOf(r.Status).label === 'Delayed').length;
+  const warning = rows.filter(r => statusOf(r.Status).label === 'Warning').length;
+
+  let html = `
+    <div class="hero-row">
+      <div class="hero-cell featured">
+        <div class="hero-label">Overall Programme Achievement</div>
+        <div class="hero-number">${avgPct.toFixed(0)}<span class="unit">%</span></div>
+        <div class="hero-sub">Average across ${rows.length} indicators</div>
+        <div class="hero-featured-details">
+          <div class="hero-mini">
+            <div class="hero-mini-num green">${onTrack + completed}</div>
+            <div class="hero-mini-label">On Track</div>
+          </div>
+          <div class="hero-mini">
+            <div class="hero-mini-num yellow">${warning}</div>
+            <div class="hero-mini-label">Warning</div>
+          </div>
+          <div class="hero-mini">
+            <div class="hero-mini-num red">${delayed}</div>
+            <div class="hero-mini-label">Delayed</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-cell">
+        <div class="hero-label">Active Projects</div>
+        <div class="hero-number">${Object.keys(groups).length}</div>
+        <div class="hero-sub">Running in Lasbela</div>
+      </div>
+      <div class="hero-cell">
+        <div class="hero-label">Total Indicators</div>
+        <div class="hero-number">${rows.length}</div>
+        <div class="hero-sub">Actively tracked</div>
+      </div>
+      <div class="hero-cell">
+        <div class="hero-label">Completed</div>
+        <div class="hero-number">${completed}</div>
+        <div class="hero-sub">Targets achieved</div>
+      </div>
+    </div>
+
+    <div class="section-title-row">
+      <h2 class="section-title">At a <em>glance</em></h2>
+      <div class="section-meta">Visual summary</div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card">
+        <h3>Achievement by Project</h3>
+        <div class="chart-sub">Average % completion across indicators</div>
+        <div class="chart-container"><canvas id="projChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Status Distribution</h3>
+        <div class="chart-sub">Indicator health breakdown</div>
+        <div class="chart-container"><canvas id="statusChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title-row">
+      <h2 class="section-title">Project <em>deep dive</em></h2>
+      <div class="section-meta">Indicator-level detail</div>
+    </div>
+  `;
+
+  Object.keys(groups).forEach(projName => {
+    const list = groups[projName];
+    const pcts = list.map(r => parsePct(r['% Achievement'])).filter(n => n > 0 && n <= 100);
+    const avg = pcts.length ? pcts.reduce((a,b) => a+b, 0) / pcts.length : 0;
+    const g = projectGlyph(projName);
+
+    html += `
+      <div class="project-card">
+        <div class="project-head">
+          <div class="project-head-left">
+            <div class="project-glyph ${g.cls}">${g.letter}</div>
+            <div>
+              <div class="project-name">${escapeHtml(projName)}</div>
+              <div class="project-count">${list.length} indicators tracked</div>
+            </div>
+          </div>
+          <div class="project-avg">
+            <div class="project-avg-num">${avg.toFixed(0)}%</div>
+            <div class="project-avg-label">Avg Achievement</div>
+          </div>
+        </div>
+        <div class="indicator-head">
+          <div>Indicator</div>
+          <div class="col-right">Achieved</div>
+          <div class="col-right">Target</div>
+          <div>Progress</div>
+          <div class="col-right">%</div>
+          <div class="col-center">Status</div>
+        </div>
+    `;
+
+    list.forEach(r => {
+      const pct = parsePct(r['% Achievement']);
+      const displayPct = Math.min(pct, 100);
+      const target = parseNum(r['Total Target']);
+      const cum = parseNum(r.Cumulative);
+      const st = statusOf(r.Status);
+      const fcls = fillClass(pct);
+      const unit = r.Unit || '';
+
+      html += `
+        <div class="indicator">
+          <div>
+            <div class="ind-name">${escapeHtml(r.Indicator || '')}</div>
+            <div class="ind-sub">${escapeHtml(unit)}</div>
+          </div>
+          <div class="ind-achieved" style="text-align: right;">${formatNum(cum)}</div>
+          <div class="ind-target" style="text-align: right;">${formatNum(target)}</div>
+          <div class="progress-wrap">
+            <div class="progress-fill ${fcls}" style="width: ${displayPct}%;">
+              ${displayPct > 12 ? displayPct.toFixed(0) + '%' : ''}
+            </div>
+          </div>
+          <div class="ind-pct">${pct.toFixed(0)}%</div>
+          <div class="ind-status ${st.cls}">${st.label}</div>
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+  });
+
+  document.getElementById('content').innerHTML = html;
+
+  renderProjectChart(groups);
+  renderStatusChart(onTrack, completed, warning, delayed);
+}
+
+function renderProjectChart(groups) {
+  const ctx = document.getElementById('projChart');
+  if (!ctx) return;
+  if (charts.proj) charts.proj.destroy();
+
+  const labels = Object.keys(groups);
+  const data = labels.map(p => {
+    const pcts = groups[p].map(r => parsePct(r['% Achievement'])).filter(n => n > 0 && n <= 100);
+    return pcts.length ? pcts.reduce((a,b) => a+b, 0) / pcts.length : 0;
+  });
+  const colors = data.map(v => v >= 80 ? '#2d5a3d' : v >= 40 ? '#b8842e' : '#c7451f');
+
+  charts.proj = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderRadius: 2,
+        barThickness: 38,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: c => c.raw.toFixed(1) + '%' },
+          backgroundColor: '#0f1a2e',
+          titleFont: { family: 'DM Sans', size: 13 },
+          bodyFont: { family: 'DM Sans', size: 12 },
+          padding: 10,
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            callback: v => v + '%',
+            font: { family: 'JetBrains Mono', size: 10 },
+            color: '#2a3b56',
+          },
+          grid: { color: '#e3dcd0' },
+        },
+        x: {
+          ticks: {
+            font: { family: 'DM Sans', size: 11, weight: '500' },
+            color: '#0f1a2e',
+          },
+          grid: { display: false },
+        }
+      }
+    }
+  });
+}
+
+function renderStatusChart(onTrack, completed, warning, delayed) {
+  const ctx = document.getElementById('statusChart');
+  if (!ctx) return;
+  if (charts.status) charts.status.destroy();
+
+  charts.status = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['On Track', 'Completed', 'Warning', 'Delayed'],
+      datasets: [{
+        data: [onTrack, completed, warning, delayed],
+        backgroundColor: ['#2d5a3d', '#2d5aa0', '#b8842e', '#c7451f'],
+        borderWidth: 3,
+        borderColor: '#ffffff',
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 14,
+            font: { family: 'DM Sans', size: 12 },
+            color: '#0f1a2e',
+            usePointStyle: true,
+            pointStyle: 'circle',
+          }
+        },
+        tooltip: { backgroundColor: '#0f1a2e', padding: 10 }
+      }
+    }
+  });
+}
+
+loadData();
+setInterval(loadData, REFRESH_MINUTES * 60 * 1000);
+</script>
+</body>
+</html>
